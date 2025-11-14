@@ -145,7 +145,8 @@ power_plot <- ggplot(power_curve_data, aes(x = true_mu_value, y = power)) +
 
 power_plot
 ```
-* When the effect size increases, the power of the test also increases.
+
+* When the effect size increases, the power of the test also increases. However, once the effect size reaches 4, the power values all appear to be the same.
 
 ## Draw the second plot
 ```{r}
@@ -176,7 +177,7 @@ conditional_estimate_plot <-
   geom_line() +
   geom_point() +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black") +
-  scale_x_continuous(name = expression("True Value of Mean)")) +
+  scale_x_continuous(name = expression("True Value of Mean")) +
   scale_y_continuous(name = "Average Estimated Mean") +
   labs(
     title = "Average Estimated Mean in Rejected Samples") +
@@ -189,9 +190,9 @@ conditional_estimate_plot <-
 conditional_estimate_plot
 ```
 
-* No, it did not match, especially when the effect sizes were small.
+* No, it did not match. The plot shows that when a study is small mu, the estimates that manage to achieve significance are exaggerated.
 
-* The bias occurs because we are only averaging the estimates from the simulations where a specific condition was met: the null hypothesis was rejected.
+* The bias occurs because we are only averaging the estimates from the simulations where a specific condition was met: the null hypothesis was rejected. In other words, When the true mu is small, the power is low. This means most of your 5000 simulated samples did not reject the null hypothesis. To be more specific, at mu=0, the only samples rejected are the rare, extreme outliers that resulted in a large sample mean by chance. Averaging only these outliers guarantees the estimate will be far above 0.
 
 # Problem 3
 ## Loading the dataset
@@ -199,11 +200,14 @@ conditional_estimate_plot
 homicide_data <- read_csv("./homicide-data.csv")
 ```
 
-## Exclude city where there is no information on state
+## Clean the data
 ```{r}
 homicide_data_filtered <- 
-  homicide_data |> 
-  filter(uid != "Pit-000050")
+    homicide_data |> 
+    janitor::clean_names() |> 
+    mutate(
+    state = str_replace(state, "wI", "WI")
+  ) 
 ```
 
 ## Create a new variable
@@ -226,7 +230,8 @@ homicide_summary <-
     total_homicides = n()
   ) |> 
   ungroup() |> 
-  arrange(desc(total_homicides))
+  arrange(desc(total_homicides)) |> 
+  filter(city_state != "Tulsa, AL")
 
 head(homicide_summary,3)
   

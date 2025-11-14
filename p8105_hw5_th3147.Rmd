@@ -194,4 +194,58 @@ conditional_estimate_plot
 
 * The bias occurs because we are only averaging the estimates from the simulations where a specific condition was met: the null hypothesis was rejected.
 
+# Problem 3
+## Loading the dataset
+```{r}
+homicide_data <- read_csv("./homicide-data.csv")
+```
 
+## Exclude city where there is no information on state
+```{r}
+homicide_data_filtered <- 
+  homicide_data |> 
+  filter(uid != "Pit-000050")
+```
+
+## Create a new variable
+```{r}
+homicide_data_modified <-
+  homicide_data_filtered  |> 
+  mutate(
+    city_state = str_c(city, state, sep = ", ")
+  )
+```
+
+## Make a summary
+```{r}
+homicide_summary <-
+  homicide_data_modified |> 
+  group_by(city_state) |> 
+  summarise(
+    homicides_solved = sum(disposition == "Closed by arrest"),
+    homicides_unsolved = sum(disposition == "Closed without arrest" | disposition == "Open/No arrest"),
+    total_homicides = n()
+  ) |> 
+  ungroup() |> 
+  arrange(desc(total_homicides))
+
+head(homicide_summary,3)
+  
+homicide_summary_solved <-
+  homicide_summary |> 
+  arrange(desc(homicides_solved))
+
+head(homicide_summary_solved,3)
+
+homicide_summary_unsolved<-
+  homicide_summary |> 
+  arrange(desc(homicides_unsolved))
+
+head(homicide_summary_unsolved,3)
+```
+
+* The dataset showed that the top three number of homicides are Chicago, Philadelphia, and Houston.
+
+* The dataset showed that the top three number of solved homicides are Philadelphia, Chicago, and Houston.
+
+* The dataset showed that the top three number of unsolved homicides are Chicago, Baltimore, and Houston.

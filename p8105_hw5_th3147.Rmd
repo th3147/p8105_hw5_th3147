@@ -34,7 +34,6 @@ group_sizes <- min_n:max_n
 # Initialize a vector to store the calculated probabilities
 probabilities <- numeric(length(group_sizes))
 
-# Run the simulation for each group size
 for (i in 1:length(group_sizes)) {
   n <- group_sizes[i]
 
@@ -249,3 +248,91 @@ head(homicide_summary_unsolved,3)
 * The dataset showed that the top three number of solved homicides are Philadelphia, Chicago, and Houston.
 
 * The dataset showed that the top three number of unsolved homicides are Chicago, Baltimore, and Houston.
+
+## Make a function
+```{r}
+get_prop_estimates <- function(x, n) {
+  prop_test_result <- prop.test(x = x, n = n)
+  prop_test_result  |> 
+    tidy()  |> 
+    select(
+      prop_estimate = estimate,
+      conf_low = conf.low,
+      conf_high = conf.high
+    )
+}
+```
+
+## Make a table
+```{r}
+city_prop_estimates_tidy <- 
+  homicide_summary |> 
+  
+  # A. Create a list column of tidy tibbles
+  # map2 applies your function row-wise
+  # The result is a list column where each element is a 1-row tibble.
+  mutate(
+    tidy_results = purrr::map2(
+      .x = homicides_unsolved,
+      .y = total_homicides,
+      .f = ~get_prop_estimates(x = .x, n = .y)
+    )
+  ) |> 
+  # This expands the list of 1-row tibbles into the main dataframe.
+  unnest(tidy_results)  |> 
+  select(
+    city_state,
+    total_homicides,
+    homicides_unsolved,
+    prop_estimate,
+    conf_low,
+    conf_high
+  ) |> 
+  arrange(desc(total_homicides))
+
+city_prop_estimates_tidy
+```
+
+## Make a plot
+### Arrange the dataset by porpotional value
+```{r}
+plot_data <- 
+  city_prop_estimates_tidy |> 
+  mutate(
+    city_state_ordered = fct_reorder(city_state, prop_estimate)
+  )
+```
+
+### Get the plot
+```{r}
+proportion_plot <- 
+  plot_data |> 
+  ggplot(aes(x = prop_estimate, y = city_state_ordered)) +
+  
+  # 1. Add the confidence interval error bars
+  geom_errorbar(
+    aes(xmin = conf_low, xmax = conf_high),
+    width = 0.2,
+    color = "gray60"
+  ) +
+  geom_point() +
+  scale_x_continuous(
+    labels = scales::percent, 
+    limits = c(0, 1)          
+  ) +
+  labs(
+    title = "Estimated Proportion of Unsolved Homicides by City",
+    subtitle = "Points show proportion; bars show 95% Confidence Intervals",
+    x = "Proportion Unsolved",
+    y = "City, State"
+  ) +
+  
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 5),
+    plot.title.position = "plot"
+  )
+
+proportion_plot
+```
+

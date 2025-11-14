@@ -248,6 +248,8 @@ homicide_summary_unsolved<-
 head(homicide_summary_unsolved,3)
 ```
 
+* The raw data had `r nrow(homicide_data)` observations and `r ncol(homicide_data)` columns.
+
 * The dataset showed that the top three number of homicides are Chicago, Philadelphia, and Houston.
 
 * The dataset showed that the top three number of solved homicides are Philadelphia, Chicago, and Houston.

@@ -1,0 +1,147 @@
+---
+title: "p8105_hw5_th3147"
+author: "Te-Hsuan Huang"
+date: "2025-11-14"
+output: github_document
+---
+
+# Loading the package
+```{r message = FALSE}
+library(tidyverse)
+library(broom)
+```
+
+# Problem 1
+## Make function
+```{r}
+simulate_birthday_match <- function(n) {
+
+  birthdays <- sample(1:365, size = n, replace = TRUE)
+  has_duplicate <- length(birthdays) != length(unique(birthdays))
+
+  # 3. Return TRUE (match found) or FALSE (no match)
+  return(has_duplicate)
+}
+
+# Define parameters
+min_n <- 2
+max_n <- 50
+n_simulations <- 10000
+
+# Create a sequence of group sizes to test
+group_sizes <- min_n:max_n
+
+# Initialize a vector to store the calculated probabilities
+probabilities <- numeric(length(group_sizes))
+
+# Run the simulation for each group size
+for (i in 1:length(group_sizes)) {
+  n <- group_sizes[i]
+
+  # Run the simulation n_simulations times for the current group size
+  results <- replicate(n_simulations, simulate_birthday_match(n))
+
+  # Compute the probability:
+  # The mean() of a logical vector (TRUE/FALSE) calculates the proportion of TRUEs
+  probability_of_match <- mean(results)
+
+  # Store the result
+  probabilities[i] <- probability_of_match
+}
+
+# Create a data frame for plotting (good practice)
+probability_data <- data.frame(
+  group_size = group_sizes,
+  probability = probabilities
+)
+```
+
+## Draw a plot
+```{r}
+# Make a plot
+plot(probability_data$group_size, probability_data$probability,
+     type = "b", # 'b' for both points and lines
+     col = "blue",
+     main = "Probability of Shared Birthday vs. Group Size (Simulated)",
+     xlab = "Group Size (n)",
+     ylab = "P(At least two people share a birthday)",
+     ylim = c(0, 1) # Ensure the y-axis spans 0 to 1
+)
+abline(h = 0.5, col = "red", lty = 2) # Add a line at P=0.5
+text(20, 0.55, "50% Probability Line", col = "red", pos = 4)
+```
+
+# Problem 2
+## Make the function
+```{r}
+analyze_datasets <- function(mu, sd=5, n_simulations = 5000, sample_size = 30) {
+  tibble(
+    simulation_id = 1:n_simulations,
+    data = map(1:n_simulations, ~ rnorm(n = sample_size, mean = mu, sd = sd)),
+    t_test_results = map(
+      .x = data,
+      .f = ~ tidy(t.test(.x, mu = 0)) # H0: mu = 0
+    )
+  )
+}
+
+```
+
+##Test the function
+```{r}
+final_sim_results_nested0 <- analyze_datasets(mu = 0)
+final_sim_results_nested1 <- analyze_datasets(mu = 1)
+final_sim_results_nested2 <- analyze_datasets(mu = 2)
+final_sim_results_nested3 <- analyze_datasets(mu = 3)
+final_sim_results_nested4 <- analyze_datasets(mu = 4)
+final_sim_results_nested5 <- analyze_datasets(mu = 5)
+final_sim_results_nested6 <- analyze_datasets(mu = 6)
+```
+
+## Make the dataset together
+```{r}
+all_results_list <- list(
+  `0` = final_sim_results_nested0,
+  `1` = final_sim_results_nested1,
+  `2` = final_sim_results_nested2,
+  `3` = final_sim_results_nested3,
+  `4` = final_sim_results_nested4,
+  `5` = final_sim_results_nested5,
+  `6` = final_sim_results_nested6
+)
+
+power_curve_data <- 
+  all_results_list |> 
+  bind_rows(.id = "true_mu_value")  |> 
+  mutate(true_mu_value = as.numeric(true_mu_value))  |> 
+  unnest(t_test_results) |> 
+  group_by(true_mu_value) |> 
+  summarise(
+    power = mean(p.value < 0.05, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+* .groups = "drop": remove the grouping structure after the summary calculation
+
+## Draw the first plot
+```{r}
+power_plot <- ggplot(power_curve_data, aes(x = true_mu_value, y = power)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(
+    title = "Statistical Power Curve for One-Sample T-Test",
+    subtitle = "Power (Rejection Rate of H0: μ = 0) vs. True Population Mean (μ)",
+    x = expression("True Value of Mean"),
+    y = "Statistical Power"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title.position = "plot",
+    panel.grid.minor = element_blank()
+  )
+
+power_plot
+```
+* When the effect size increases, the power of the test also increases.

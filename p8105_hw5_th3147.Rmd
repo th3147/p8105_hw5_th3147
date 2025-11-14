@@ -295,6 +295,10 @@ city_prop_estimates_tidy <-
   ) |> 
   arrange(desc(total_homicides))
 
+baltimore_data <- city_prop_estimates_tidy |> 
+  filter(city_state == "Baltimore, MD") |> 
+  print()
+
 city_prop_estimates_tidy
 ```
 
